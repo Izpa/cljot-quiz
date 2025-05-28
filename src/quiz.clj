@@ -7,16 +7,6 @@
    [telegrambot-lib.core :as tbot]
    [utils :refer [pformat]]))
 
-(defmethod ig/init-key ::subscribed? [_ {:keys [bot channel-id]}]
-  #(let [{:keys [ok error_code description]
-          {:keys [status]} :result
-          :as response} (tbot/get-chat-member bot channel-id %)]
-     (when (and (not ok)
-                (= error_code 400)
-                (= description "Bad Request: PARTICIPANT_ID_INVALID"))
-       (log/error "Unexpected get-chat-memeber response" response))
-     (not= status "left")))
-
 (defmethod ig/init-key ::admin? [_ {:keys [admin-chat-ids]}]
   #(contains? admin-chat-ids %))
 
@@ -34,33 +24,6 @@
 
 (defmethod ig/init-key ::telegram-send [_ {:keys [bot]}]
   (partial telegram-send bot))
-
-(def subscribed-callback-data "subscribed")
-
-(def subscribed-additional-content
-  {:reply_markup {:inline_keyboard [[{:text "Я подписался"
-                                      :callback_data subscribed-callback-data}]]}})
-
-(defmethod ig/init-key ::user-welcome [_ {:keys [db-execute!]}]
-  (fn [answer chat]
-    (db-execute! {:insert-into :users
-                  :values [(select-keys chat
-                                        [:id
-                                         :username
-                                         :last_name
-                                         :first_name])]}
-                 true)
-    (answer (str "Давай знакомиться?\n\n"
-                 "\u270CМы - Центр инноваций и Клуб LANIT Product manager.\n\n"
-                 "Топим за продуктовый подход и развиваем продуктовую культуру в корпорации.\n\n"
-                 "🔥Сегодня разыгрываем футболки, которые мы сделали совместно с SlovoDna. "
-                 "Да, на кону те самые футболки - классные и стильные. "
-                 "В такой можно ходить не только на даче:) "
-                 "Условия простые:\n\n"
-                 "⚡️подписаться на наш <a href='https://t.me/+C-XaEZ28W5szZTUy'>канал</a>\n"
-                 "⚡️пройти квиз из 5 вопросов.\n\n"
-                 "После подписки нажми кнопку “Я подписался”")
-            subscribed-additional-content)))
 
 (defn user-id->next-question
   [db-execute! user-id]
@@ -107,11 +70,6 @@
 
 (defn after-questions
   [answer]
-  (answer (str "Это было огненно!\n"
-               "Лови наш фирменный <a href='https://t.me/addstickers/LANIT3'>стикерпак</a>, "
-               "наклейки можешь взять на стенде :)\n\n"
-               "⭐️Чтобы и дальше быть на продуктовой волне, "
-               "присоединяйся к <a href='https://t.me/+K8YGduhn8NxiYjg6'>сообществу</a> продактов ЛАНИТ :)"))
   (answer (str "🎁Это еще не все! Совсем скоро будем разыгрывать футболки от SlovoDna! "
                "Победителей выберет великий рандомайзер:)\n\n"
                "💬Жди сообщение в боте.\n\n"
@@ -137,7 +95,6 @@
 
 (defn questions
   [db-execute!
-   subscribed?
    answer
    {{:keys [id]} :chat
     :keys [data
@@ -145,54 +102,45 @@
     :as msg}]
   (let [data (try (Integer/parseInt data)
                   (catch Exception _ data))
-        any-answers? (-> {:select [[(sql/call :count :*)]]
-                          :from [:user-answers]
-                          :where [:= :user-id id]}
-                         (db-execute! true)
-                         :count
-                         (not= 0))]
-    (if (or (subscribed? id)
-            any-answers?)
-      (let [{:keys [question-id
-                    question-text
-                    question-message-id
-                    options
-                    option-ids
-                    correct-option-id]} (user-id->next-question db-execute! id)]
-        (if question-id
-          (if question-message-id
-            (if (not-empty options)
-              (if (and data
-                       (contains? option-ids data))
-                (do
-                  (db-execute! {:update :user-answers
-                                :set {:option-id data}
-                                :where [:and
-                                        [:= :user-id id]
-                                        [:= :question-id question-id]]})
-                  (when correct-option-id
-                    (if (= data
-                           correct-option-id)
-                      (answer "Верно!")
-                      (answer (str "Неправильно, правильный ответ: " (get options correct-option-id)))))
-                  (questions db-execute! subscribed? answer msg))
-                (answer "Пожалуйста, используйте кнопки для ответа"))
-              (if text
-                (do (db-execute! {:update :user-answers
-                                  :set {:answer-text text}
-                                  :where [:and
-                                          [:= :user-id id]
-                                          [:= :question-id question-id]]})
-                    (questions db-execute! subscribed? answer msg))
-                (answer "Пожалуйста, используйте текст для ответа")))
-            (ask-question question-id question-text  options id answer db-execute!))
-          (after-questions answer)))
-      (answer "Не видим твою подписку :) Попробуй ещё раз :)" subscribed-additional-content))))
+        {:keys [question-id
+                question-text
+                question-message-id
+                options
+                option-ids
+                correct-option-id]} (user-id->next-question db-execute! id)]
+    (if question-id
+      (if question-message-id
+        (if (not-empty options)
+          (if (and data
+                   (contains? option-ids data))
+            (do
+              (db-execute! {:update :user-answers
+                            :set {:option-id data}
+                            :where [:and
+                                    [:= :user-id id]
+                                    [:= :question-id question-id]]})
+              (when correct-option-id
+                (if (= data
+                       correct-option-id)
+                  (answer "Верно!")
+                  (answer (str "Неправильно, правильный ответ: " (get options correct-option-id)))))
+              (questions db-execute! answer msg))
+            (answer "Пожалуйста, используйте кнопки для ответа"))
+          (if text
+            (do (db-execute! {:update :user-answers
+                              :set {:answer-text text}
+                              :where [:and
+                                      [:= :user-id id]
+                                      [:= :question-id question-id]]})
+                (questions db-execute! answer msg))
+            (answer "Пожалуйста, используйте текст для ответа")))
+        (ask-question question-id question-text  options id answer db-execute!))
+      (after-questions answer))))
 
 (defmethod ig/init-key ::user-main-chain [_ {:keys [db-execute! subscribed?]}]
   (partial questions db-execute! subscribed?))
 
-(defmethod ig/init-key ::user-answer [_ {:keys [db-execute! user-welcome user-main-chain]}]
+(defmethod ig/init-key ::user-answer [_ {:keys [db-execute! user-main-chain]}]
   (fn [msg answer]
     (let [{{:keys [id]
             :as chat} :chat} msg
@@ -200,9 +148,15 @@
                              :from :users
                              :where [:= :id id]}
                             true)]
-      (if user
-        (user-main-chain answer msg)
-        (user-welcome answer chat)))))
+      (when-not user
+        (db-execute! {:insert-into :users
+                      :values [(select-keys chat
+                                        [:id
+                                         :username
+                                         :last_name
+                                         :first_name])]}
+                 true))
+      (user-main-chain answer msg))))
 
 (defn command?
   [text]
@@ -280,10 +234,8 @@
                                     id
                                     (str "ТЫ ВЫИГРАЛ ФУТБОЛКУ от "
                                          "<a href='https://t.me/slovodna'>SlovoDna</a>, "
-                                         "ЖДЕМ ТЕБЯ НА СТЕНДЕ! "
-                                         "У тебя есть 30 минут, чтобы получить свой приз. "
-                                         "Если не успеешь, футболка <s>превратится в тыкву</s> "
-                                         "перейдет к следующему победителю 😭 (winner-id: " id ")")
+                                         "ждем тебя до 19 на стенде или пиши @just_polina02, "
+                                         "чтобы забрать свой приз! ")
                                     {:parse_mode "HTML"}))
                (answer (if (not-empty winners)
                          (str/join "\n"
