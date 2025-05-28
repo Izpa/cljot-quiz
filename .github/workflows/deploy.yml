@@ -1,0 +1,73 @@
+name: Deploy to main
+
+on:
+    push:
+        branches:
+            - main
+        # you can specify path if you have a monorepo and you want to deploy if particular directory is changed, make sure to update `CONTEXT_DIR` too
+        # paths:
+        #   - "backend-app/**"
+
+jobs:
+    build_and_deploy:
+        runs-on: ubuntu-latest
+    
+        steps:
+        - name: Prepare java
+          uses: actions/setup-java@v3
+          with:
+            distribution: 'zulu'
+            java-version: '21'
+        
+        - name: Install clojure tools
+          uses: DeLaGuardo/setup-clojure@12.3
+          with:
+            # Install just one or all simultaneously
+            # The value must indicate a particular version of the tool, or use 'latest'
+            # to always provision the latest version
+            cli: latest
+            zprint: latest
+        - name: Cache jars
+          uses: actions/cache@v3
+          with:
+            path: |
+              ~/.m2
+              ~/.gitlibs
+              ~/.deps.clj
+            key: maven-${{ hashFiles('deps.edn') }}
+            restore-keys: clj-deps-
+
+        - name: Check out repository
+          uses: actions/checkout@v3
+
+        - name: Build app
+          run: make build-uberjar
+
+        - name: Set up Docker Buildx
+          uses: docker/setup-buildx-action@v3
+    
+        - name: Login to Container Registry
+          uses: docker/login-action@v3
+          with:
+                registry: ghcr.io
+                username: ${{ github.actor }}
+                password: ${{ secrets.GITHUB_TOKEN }}
+    
+        - name: Preset Image Name
+          run: echo "IMAGE_URL=$(echo ghcr.io/${{ github.actor }}/${{ github.event.repository.name }}:$(echo ${{ github.sha }} | cut -c1-7) | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+    
+        - name: Build and push Docker Image
+          uses: docker/build-push-action@v4
+          with:
+            context: .
+            file: ./Dockerfile
+            push: true
+            tags: ${{ env.IMAGE_URL }}
+    
+        - name: Deploy Image to CapRrover
+          uses: caprover/deploy-from-github@v1.1.2
+          with:
+            server: "${{ secrets.CAPROVER_SERVER }}"
+            app: "${{ secrets.APP_NAME }}"
+            token: "${{ secrets.APP_TOKEN }}"
+            image: ${{ env.IMAGE_URL }}

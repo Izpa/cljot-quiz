@@ -1,0 +1,9 @@
+{:db/ds
+ {:migration-dir "migrations"
+  :store :database
+  :db {:dbtype   "postgresql"
+       :host     #or [#env "DB_HOST" "localhost"]
+       :port     #or [#env "DB_PORT" 5432]
+       :dbname   #or [#env "DB_NAME" "cljot"]
+       :user     #or [#env "DB_USER" "user"]
+       :password #or [#env "DB_PASSWORD" "password"]}}}

@@ -1,0 +1,8 @@
+{:test-utils/db-ds
+ {:dbtype "hsqldb"
+  :dbname "mem:test;drop=true;sql.syntax_pgs=true"
+  :user "user"
+  :password-secret "password"}
+
+ :test-utils/db-shutdown 
+ {:execute! #ig/ref :db/execute!}}
