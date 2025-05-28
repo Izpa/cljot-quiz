@@ -5,15 +5,12 @@
 
          :quiz/telegram-send {:bot #ig/ref :telegram-bot/client}
 
-         :quiz/user-main-chain {:db-execute! #ig/ref :db/execute!
-                                :subscribed? #ig/ref :quiz/subscribed?}
+         :quiz/user-main-chain {:db-execute! #ig/ref :db/execute!}
 
          :quiz/user-answer {:db-execute! #ig/ref :db/execute!
-                            :user-welcome #ig/ref :quiz/user-welcome
                             :user-main-chain #ig/ref :quiz/user-main-chain}
 
          :quiz/admin-commands {:db-execute! #ig/ref :db/execute!
-                               :subscribed? #ig/ref :quiz/subscribed?
                                :bot #ig/ref :telegram-bot/client
                                :admin? #ig/ref :quiz/admin?}
 
