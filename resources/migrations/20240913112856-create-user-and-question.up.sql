@@ -23,7 +23,7 @@ CREATE TABLE question_options (
 CREATE TABLE user_answers (
     id SERIAL PRIMARY KEY,
     question_message_id BIGINT,
-    user_id INT REFERENCES users(id) ON DELETE CASCADE,
+    user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
     question_id INT REFERENCES questions(id) ON DELETE CASCADE,
     answer_text TEXT,
     option_id INT REFERENCES question_options(id),
@@ -53,9 +53,9 @@ VALUES
 --;;
 INSERT INTO question_options (question_id, text, is_correct, sort_order)
 VALUES
-    (1, 'ГЛАВНЫЙ ПРОЕКТ "Что-то мы о нем слышали"', FALSE, 1),
-    (2, 'ВТОРОЙ ПРОЕКТ Это не все?', FALSE, 1),
-    (3, 'ДРУГИЕ ПРОЕКТЫ Ну сколько у вас проектов!', FALSE, 1),
+    (1, 'ГЛАВНЫЙ ПРОЕКТ', FALSE, 1),
+    (2, 'ВТОРОЙ ПРОЕКТ', FALSE, 1),
+    (3, 'ДРУГИЕ ПРОЕКТЫ', FALSE, 1),
     (4, 'ДАЛЕЕ', FALSE, 1),
     
     (8, 'Да, активно', FALSE, 1),
