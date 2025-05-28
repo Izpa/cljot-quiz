@@ -1,6 +1,5 @@
 (ns potemkin.namespaces
-  (:require
-   [clj-kondo.hooks-api :as api]))
+  (:require [clj-kondo.hooks-api :as api]))
 
 (defn import-macro*
   ([sym]
