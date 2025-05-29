@@ -80,16 +80,31 @@
                            db-execute!
                            first
                            :cnt)]
-    (answer (str "Правильных ответов - " correct-count "\n\n"
+    (answer (str "Правильных ответов - " correct-count "🎉\n\n"
                  (cond
                    (< correct-count 3) "Ты уже начал разбираться в теме, и это отличный старт. Впереди погружение в дивный мир продакт-менеджмента. Участвуй в розыгрыше футболок от SlovoDna и Центра инноваций, возможно, тебе повезет и ты поймаешь продуктовую волну: футболка точно поможет :)"
                    (= correct-count 3) "Крутой результат! У продуктового самурая нет цели, есть только путь, и ты на правильном пути. Как гласит народная мудрость, без продуктового труда, не выловишь и бизнес из пруда. Для хорошего улова приглашаем принять участие в розыгрыше  розыгрыш футболок от SlovoDna и Центра инноваций."
                    (> correct-count 3) "С продуктовым подходом на “ты” - это точно про тебя :) Пора идти в Акселератор и создавать новые продукты! А чтобы было легче принять решение, принимай участие в розыгрыше футболок. Они ускоряют генерацию гипотез, проверено на выпускниках четырех потоков.")))
     (answer "Теперь ты в игре! В 18:00 5 победителей розыгрыша выберет великий рандомайзер:) Жди сообщение в боте.")))
 
+(defn number->emoji [n]
+  (let [emoji-digits "0️⃣1️⃣2️⃣3️⃣4️⃣5️⃣6️⃣7️⃣8️⃣9️⃣"
+        digit-chars (vec emoji-digits)]
+    (when (not= (count digit-chars) 10)
+      (throw (ex-info "emoji-digits must contain exactly 10 emoji characters" {})))
+    (->> (str n)
+         (map (fn [ch]
+                (let [idx (Character/digit ch 10)]
+                  (if (neg? idx)
+                    (throw (ex-info (str "Invalid digit character: " ch) {}))
+                    (nth digit-chars idx)))))
+         (apply str))))
+
 (defn ask-question
   [question-id question-text options id answer db-execute!]
-  (if (<= (count options) 1)
+  (if (or (<= (count options) 1)
+          (not (some (fn [[_ text]] (> (count text) 10)) options)))
+      ;; Старый стиль: текст опций на кнопках
     (let [buttons (mapv (fn [[option-id option-text]]
                           [{:text option-text
                             :callback_data option-id}])
@@ -103,15 +118,18 @@
            (assoc {:insert-into :user-answers} :values)
            (db-execute!)))
 
+      ;; Новый стиль: текст опций в теле, кнопки — номера-эмодзи
     (let [numbered-options (->> options
                                 (map vector (range 1 Long/MAX_VALUE))
                                 (mapv (fn [[n [_ text _]]] [n text])))
           numbered-text (str question-text
                              "\n\n"
                              (str/join "\n"
-                                       (map (fn [[n text]] (str n ". " text)) numbered-options)))
+                                       (map (fn [[n text]]
+                                              (str (number->emoji n) ". " text))
+                                            numbered-options)))
           buttons (mapv (fn [[n [option-id _ _]]]
-                          [{:text (str n)
+                          [{:text (number->emoji n)
                             :callback_data option-id}])
                         (map vector (range 1 Long/MAX_VALUE) options))]
       (->> {:reply_markup {:inline_keyboard buttons}}
@@ -250,14 +268,15 @@
                  (doseq [{:keys [id]} (db-execute! {:select [:id] :from :users})]
                    (try (tbot/send-message bot
                                            id
-                                           (str (count winners)
-                                                " победителей выбраны рандомайзером!\n\n"
+                                           (str "Барабанная дробь! Футболки от SlovoDna и Центра инноваций получают: \n\n"
                                                 (str/join "\n"
                                                           (mapv #(if-let [username (:username %)]
                                                                    username
                                                                    (str/join " " [(:first-name %)
                                                                                   (:last-name %)]))
-                                                                winners))))
+                                                                winners))
+                                                "\n\n"
+                                                "Поздравляем победителей! Спасибо всем за участие ❤️"))
                         (catch Exception _))))
                (doseq [{:keys [id]} winners]
                  (tbot/send-message bot
@@ -265,7 +284,7 @@
                                     (str "ТЫ ВЫИГРАЛ ФУТБОЛКУ от "
                                          "<a href='https://t.me/slovodna'>SlovoDna</a>, "
                                          "ждем тебя до 19 на стенде или пиши @just_polina02, "
-                                         "чтобы забрать свой приз! ")
+                                         "чтобы забрать свой приз!🎁")
                                     {:parse_mode "HTML"}))
                (answer (if (not-empty winners)
                          (str/join "\n"
