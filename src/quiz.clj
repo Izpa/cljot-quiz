@@ -88,8 +88,8 @@
     (answer "Теперь ты в игре! В 18:00 5 победителей розыгрыша выберет великий рандомайзер:) Жди сообщение в боте.")))
 
 (defn number->emoji [n]
-  (let [emoji-digits-str "0️⃣1️⃣2️⃣3️⃣4️⃣5️⃣6️⃣7️⃣8️⃣9️⃣"
-        emoji-digits (str/split emoji-digits-str #"(?<=\X)")]
+  (let [emoji-digits-str "0️⃣ 1️⃣ 2️⃣ 3️⃣ 4️⃣ 5️⃣ 6️⃣ 7️⃣ 8️⃣ 9️⃣"
+        emoji-digits (str/split emoji-digits-str #" ")]
     (when (not= (count emoji-digits) 10)
       (throw (ex-info "emoji-digits must contain exactly 10 emoji characters" {})))
     (->> (str n)
@@ -104,7 +104,6 @@
   [question-id question-text options id answer db-execute!]
   (if (or (<= (count options) 1)
           (not (some (fn [[_ text]] (> (count text) 10)) options)))
-      ;; Старый стиль: текст опций на кнопках
     (let [buttons (mapv (fn [[option-id option-text]]
                           [{:text option-text
                             :callback_data option-id}])
@@ -118,7 +117,6 @@
            (assoc {:insert-into :user-answers} :values)
            (db-execute!)))
 
-      ;; Новый стиль: текст опций в теле, кнопки — номера-эмодзи
     (let [numbered-options (->> options
                                 (map vector (range 1 Long/MAX_VALUE))
                                 (mapv (fn [[n [_ text _]]] [n text])))
