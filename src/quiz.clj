@@ -88,16 +88,16 @@
     (answer "Теперь ты в игре! В 18:00 5 победителей розыгрыша выберет великий рандомайзер:) Жди сообщение в боте.")))
 
 (defn number->emoji [n]
-  (let [emoji-digits "0️⃣1️⃣2️⃣3️⃣4️⃣5️⃣6️⃣7️⃣8️⃣9️⃣"
-        digit-chars (vec emoji-digits)]
-    (when (not= (count digit-chars) 10)
+  (let [emoji-digits-str "0️⃣1️⃣2️⃣3️⃣4️⃣5️⃣6️⃣7️⃣8️⃣9️⃣"
+        emoji-digits (str/split emoji-digits-str #"(?<=\X)")]
+    (when (not= (count emoji-digits) 10)
       (throw (ex-info "emoji-digits must contain exactly 10 emoji characters" {})))
     (->> (str n)
          (map (fn [ch]
                 (let [idx (Character/digit ch 10)]
                   (if (neg? idx)
-                    (throw (ex-info (str "Invalid digit character: " ch) {}))
-                    (nth digit-chars idx)))))
+                    (throw (ex-info (str "Invalid digit: " ch) {}))
+                    (nth emoji-digits idx)))))
          (apply str))))
 
 (defn ask-question
