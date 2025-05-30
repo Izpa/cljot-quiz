@@ -85,7 +85,7 @@
                    (< correct-count 3) "Ты уже начал разбираться в теме, и это отличный старт. Впереди погружение в дивный мир продакт-менеджмента. <b>Участвуй в розыгрыше футболок от SlovoDna и Центра инноваций! Возможно, тебе повезет и ты поймаешь продуктовую волну, футболка точно поможет :)</b>"
                    (= correct-count 3) "<b>Крутой результат!</b> У продуктового самурая нет цели, есть только путь, и ты на правильном пути. Как гласит народная мудрость, без продуктового труда, не выловишь и бизнес из пруда. <b>Для хорошего улова приглашаем принять участие в розыгрыше  розыгрыш футболок от SlovoDna и Центра инноваций.</b>"
                    (> correct-count 3) "<b>С продуктовым подходом на “ты” - это точно про тебя :)</b> Пора идти в Акселератор и создавать новые продукты! <b>А чтобы было легче принять решение, принимай участие в розыгрыше футболок. Они ускоряют генерацию гипотез, проверено на выпускниках четырех потоков.<b>")))
-    (answer "<b>Теперь ты в игре! В 18:00 5 победителей розыгрыша выберет великий рандомайзер:) Жди сообщение в боте 💌.</b>")))
+    (answer "<b>Теперь ты в игре! В 19:00 5 победителей розыгрыша выберет великий рандомайзер:) Жди сообщение в боте 💌.</b>")))
 
 (defn number->emoji [n]
   (let [emoji-digits-str "0️⃣ 1️⃣ 2️⃣ 3️⃣ 4️⃣ 5️⃣ 6️⃣ 7️⃣ 8️⃣ 9️⃣"
@@ -197,11 +197,11 @@
       (when-not user
         (db-execute! {:insert-into :users
                       :values [(select-keys chat
-                                        [:id
-                                         :username
-                                         :last_name
-                                         :first_name])]}
-                 true))
+                                            [:id
+                                             :username
+                                             :last_name
+                                             :first_name])]}
+                     true))
       (user-main-chain answer msg))))
 
 (defn command?
@@ -216,36 +216,7 @@
    :order-by [(sql/call [:random])]
    :limit users-count})
 
-(defn select-winners
-  [db-execute! subscribed? winners-count]
-  (loop [winners []]
-    (if (< (count winners) winners-count)
-      (if-let [users (-> (- winners-count (count winners))
-                         select-random-users
-                         db-execute!
-                         not-empty)]
-        (let [{:keys [subscribed
-                      not-subscribed-ids]}
-              (reduce (fn [r {:keys [id] :as user}]
-                        (if (subscribed? id)
-                          (update r :subscribed conj user)
-                          (update r :not-subscribed-ids conj id)))
-                      {:subscribed []
-                       :not-subscribed-ids []}
-                      users)]
-          (when (not-empty not-subscribed-ids)
-            (db-execute! {:update :users
-                          :set {:is-winner false}
-                          :where [:in :id not-subscribed-ids]} true))
-          (when (not-empty subscribed)
-            (db-execute! {:update :users
-                          :set {:is-winner true}
-                          :where [:in :id (map :id subscribed)]}))
-          (recur (concat winners subscribed)))
-        winners)
-      winners)))
-
-(defmethod ig/init-key ::admin-commands [_ {:keys [db-execute! bot admin? subscribed?]}]
+(defmethod ig/init-key ::admin-commands [_ {:keys [db-execute! bot admin?]}]
   {:start (fn [_ _ answer]
             (answer (str "Вы - администратор! Вам доступны команды:\n"
                          "/winner N - сгенерировать N победителей (N - число)\n"
@@ -260,8 +231,14 @@
                 (str "Кол-во пользователей: ")
                 answer))
    :winner (fn [_msg winner-count answer]
-             (let [winner-count (Integer/parseInt winner-count)
-                   winners (select-winners db-execute! subscribed? winner-count)]
+             (let [winners (db-execute! {:update :users
+                                         :set {:is-winner true}
+                                         :where [:in :id (->> winner-count
+                                                              Integer/parseInt
+                                                              select-random-users
+                                                              db-execute!
+                                                              not-empty
+                                                              (map :id))]})]
                (when (not-empty winners)
                  (doseq [{:keys [id]} (db-execute! {:select [:id] :from :users})]
                    (try (tbot/send-message bot
