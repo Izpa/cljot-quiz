@@ -71,7 +71,7 @@
   :dev
   {:extra-deps
    {binaryage/devtools {:mvn/version "1.0.7"}
-    integrant/repl {:mvn/version "0.3.3"}
+    integrant/repl {:mvn/version "0.4.0"}
     clojure-watch/clojure-watch {:mvn/version "0.1.14"}
     com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.6.2"}
     com.gfredericks/test.chuck {:mvn/version "0.2.15"}}
