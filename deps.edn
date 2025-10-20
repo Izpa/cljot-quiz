@@ -74,7 +74,7 @@
     integrant/repl {:mvn/version "0.3.3"}
     clojure-watch/clojure-watch {:mvn/version "0.1.14"}
     com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.6.2"}
-    com.gfredericks/test.chuck {:mvn/version "0.2.13"}}
+    com.gfredericks/test.chuck {:mvn/version "0.2.15"}}
    :extra-paths ["dev"]
    :exec-fn user/run-system!
    :exec-args {}}}}
