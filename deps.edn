@@ -11,7 +11,7 @@
   com.github.seancorfield/honeysql {:mvn/version "2.7.1388"} 
   telegrambot-lib/telegrambot-lib {:mvn/version "2.15.0"} ; telegram
   cheshire/cheshire {:mvn/version "6.2.0"} ; json encoding
-  integrant/integrant {:mvn/version "0.13.1"} ; config
+  integrant/integrant {:mvn/version "1.0.1"} ; config
   aero/aero {:mvn/version "1.1.6"} ; config
   http-kit/http-kit {:mvn/version "2.8.1"}
   org.slf4j/slf4j-nop {:mvn/version "2.0.17"}
