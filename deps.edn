@@ -8,7 +8,7 @@
   metosin/malli {:mvn/version "0.18.0"} ; schema 
   com.github.seancorfield/next.jdbc {:mvn/version "1.3.1002"} ; db
   migratus/migratus {:mvn/version "1.6.4"}
-  com.github.seancorfield/honeysql {:mvn/version "2.7.1310"} 
+  com.github.seancorfield/honeysql {:mvn/version "2.7.1399"} 
   telegrambot-lib/telegrambot-lib {:mvn/version "2.15.0"} ; telegram
   cheshire/cheshire {:mvn/version "6.2.0"} ; json encoding
   integrant/integrant {:mvn/version "0.13.1"} ; config
