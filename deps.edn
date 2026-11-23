@@ -54,7 +54,7 @@
                "--plugin" "cloverage"]}
 
   :common-test
-  {:extra-deps {org.hsqldb/hsqldb {:mvn/version "2.7.2"} ; db
+  {:extra-deps {org.hsqldb/hsqldb {:mvn/version "2.7.4"} ; db
                 clj-test-containers/clj-test-containers {:mvn/version "0.7.4"}}
    :extra-paths ["test/common" "test_resources"]}
 
